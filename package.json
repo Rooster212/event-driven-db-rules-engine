@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "prepublish": "rm -rf ./dist && tsc --project tsconfig.build.json",
+    "prepublishOnly": "rm -rf ./dist && tsc --project tsconfig.build.json",
     "test": "npx jest",
     "lint": "npx eslint . --ext .js,.jsx,.ts,.tsx",
     "coverage": "npx jest --collect-coverage",
