@@ -1,0 +1,25 @@
+name: Publish package to GitHub Packages
+on:
+  release:
+    types: [created]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16.x'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@Rooster212'
+      - name: Install packages
+        run: npm ci
+      - name: Publish package
+        run: npm publish  # npm runs 'prepublishOnly' automatically before publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

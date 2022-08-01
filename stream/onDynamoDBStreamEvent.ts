@@ -1,22 +1,30 @@
 import { DynamoDBStreamEvent, DynamoDBRecord } from "aws-lambda";
 import { EventBridge } from "aws-sdk";
 
-export const handler = async (event: DynamoDBStreamEvent): Promise<void> => {
-  log("processing records", { count: event.Records.length });
-  for (let i = 0; i < event.Records.length; i++) {
-    const r = event.Records[i];
-    if (!hasRequiredKeys(r)) {
-      continue;
+export type OnDynamoDBStreamEvent = (event: DynamoDBStreamEvent) => Promise<void>;
+
+export type OnDynamoDBStreamEventLogFunc = (logMessage: string, data: Record<string, unknown>) => void;
+
+export const createOnDynamoDBStreamHandler = (eventSource: string, eventBusName = "default", internalLog = defaultLog): OnDynamoDBStreamEvent => {
+  const handler = async (event: DynamoDBStreamEvent): Promise<void> => {
+    internalLog("processing records", { count: event.Records.length });
+    for (let i = 0; i < event.Records.length; i++) {
+      const r = event.Records[i];
+      if (!hasRequiredKeys(r)) {
+        continue;
+      }
+      const typ = r.dynamodb?.NewImage?._typ.S;
+      const itm = r.dynamodb?.NewImage?._itm.S;
+      if (typ && itm) {
+        internalLog("publishing outbound event", { id: r.dynamodb?.NewImage?._id.S, typ });
+        await publish<string>(eventSource, typ, itm, eventBusName);
+        internalLog("published outbound event", { id: r.dynamodb?.NewImage?._id.S, typ, count: 1 });
+      }
     }
-    const typ = r.dynamodb?.NewImage?._typ.S;
-    const itm = r.dynamodb?.NewImage?._itm.S;
-    if (typ && itm) {
-      log("publishing outbound event", { id: r.dynamodb?.NewImage?._id.S, typ });
-      await publish<string>("finance-v2", typ, itm);
-      log("published outbound event", { id: r.dynamodb?.NewImage?._id.S, typ, count: 1 });
-    }
-  }
-  log("processed records", { count: event.Records.length });
+    internalLog("processed records", { count: event.Records.length });
+  };
+
+  return handler;
 };
 
 const hasStringKey = (r: DynamoDBRecord, k: string): boolean => !!r.dynamodb?.NewImage?.[k]?.S;
@@ -60,7 +68,7 @@ const publish = async <TEvent>(
   }
 };
 
-const log = (msg: string, data: Record<string, unknown>) =>
+const defaultLog: OnDynamoDBStreamEventLogFunc = (msg: string, data: Record<string, unknown>) =>
   console.log(
     JSON.stringify({
       time: new Date().toISOString(),
