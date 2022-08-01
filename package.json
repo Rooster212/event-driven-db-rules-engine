@@ -1,5 +1,5 @@
 {
-  "name": "@Rooster212/event-driven-dynamodb-rules-engine",
+  "name": "@rooster212/event-driven-dynamodb-rules-engine",
   "version": "0.1.0",
   "description": "Events and rules engine for use with DynamoDB.",
   "main": "dist/index.js",
