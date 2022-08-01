@@ -1,0 +1,28 @@
+name: Test
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch: {}
+  pull_request: {}
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    services:
+      local-dynamo-db:
+        image: amazon/dynamodb-local:latest
+        ports:
+          - "8000:8000"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Run tests
+        run: npm run test
