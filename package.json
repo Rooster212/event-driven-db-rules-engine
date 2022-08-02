@@ -1,6 +1,6 @@
 {
   "name": "@rooster212/event-driven-dynamodb-rules-engine",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Events and rules engine for use with DynamoDB.",
   "main": "index.js",
   "scripts": {
