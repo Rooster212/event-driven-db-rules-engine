@@ -8,6 +8,7 @@ mkdir ./dist
 npx tsc --project tsconfig.build.json
 
 cp package.json ./dist
+cp package-lock.json ./dist
 cp LICENSE.txt ./dist
 cd ./dist
 
