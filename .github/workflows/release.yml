@@ -17,10 +17,12 @@ jobs:
         with:
           node-version: '16.x'
           registry-url: 'https://npm.pkg.github.com'
-          scope: '@Rooster212'
+          scope: '@rooster212'
       - name: Install packages
         run: npm ci
       - name: Publish package
-        run: npm publish  # npm runs 'prepublishOnly' automatically before publish
+        run: |
+          chmod +x ./publish.sh
+          ./publish.sh
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
