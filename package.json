@@ -1,11 +1,11 @@
 {
   "name": "@rooster212/event-driven-dynamodb-rules-engine",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Events and rules engine for use with DynamoDB.",
-  "main": "dist/index.js",
+  "main": "index.js",
   "scripts": {
     "build": "tsc",
-    "prepublishOnly": "rm -rf ./dist && tsc --project tsconfig.build.json",
+    "custom-publish": "./publish.sh",
     "test": "npx jest",
     "lint": "npx eslint . --ext .js,.jsx,.ts,.tsx",
     "coverage": "npx jest --collect-coverage",
@@ -17,13 +17,13 @@
   ],
   "author": "rooster212",
   "license": "ISC",
-  "types": "dist/index.d.ts",
+  "types": "index.d.ts",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Rooster212/event-driven-dynamodb-rules-engine.git"
+    "url": "git+https://github.com/rooster212/event-driven-dynamodb-rules-engine.git"
   },
   "publishConfig": {
-    "@Rooster212:registry": "https://npm.pkg.github.com"
+    "@rooster212:registry": "https://npm.pkg.github.com"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.128.0",
@@ -31,8 +31,6 @@
     "aws-lambda": "^1.0.7"
   },
   "devDependencies": {
-    "@babel/preset-env": "^7.11.0",
-    "@babel/preset-typescript": "^7.10.4",
     "@types/aws-lambda": "^8.10.101",
     "@types/jest": "^26.0.8",
     "@typescript-eslint/eslint-plugin": "^4.17.0",
