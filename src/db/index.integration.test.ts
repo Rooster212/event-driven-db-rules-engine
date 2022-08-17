@@ -1,7 +1,10 @@
-import { CreateTableCommand, DeleteTableCommand, DeleteTableCommandOutput, DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import {
-  DynamoDBDocumentClient,
-} from "@aws-sdk/lib-dynamodb";
+  CreateTableCommand,
+  DeleteTableCommand,
+  DeleteTableCommandOutput,
+  DynamoDBClient,
+} from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 
 import { EventDB, newStateRecord, newInboundRecord, newOutboundRecord } from ".";
 
@@ -66,7 +69,7 @@ describe("EventDB", () => {
         ];
         await db.putState(stateRecord, 0, inboundRecords);
 
-        const actual = await db.getRecords("idValue");
+        const actual = await db.queryRecords("idValue");
         expect(actual).toEqual([...inboundRecords, stateRecord]);
       } finally {
         await testDB.delete();
@@ -118,7 +121,7 @@ describe("EventDB", () => {
         ];
         await db.putState(stateRecord, 0, inboundRecords, outboundRecords);
 
-        const actual = await db.getRecords("idValue");
+        const actual = await db.queryRecords("idValue");
         expect(actual).toEqual([...inboundRecords, ...outboundRecords, stateRecord]);
       } finally {
         await testDB.delete();
@@ -248,13 +251,13 @@ const createLocalTable = async (): Promise<DB> => {
       },
     ],
     BillingMode: "PAY_PER_REQUEST",
-  })
+  });
   await ddb.send(createTableCommand);
 
   const deleteTableFunc = async () => {
     const deleteTableCommand = new DeleteTableCommand({ TableName: tableName });
     return await ddb.send(deleteTableCommand);
-  }
+  };
 
   return {
     name: tableName,

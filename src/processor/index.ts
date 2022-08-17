@@ -8,7 +8,7 @@ export interface StateUpdaterInput<
   TState,
   TInputEvents,
   TOutputEvents,
-  TCurrent extends TInputEvents
+  TCurrent extends TInputEvents,
 > {
   // state of the facet.
   state: TState;
