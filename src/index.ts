@@ -51,6 +51,13 @@ export class Facet<TState, TInputEvents, TOutputEvents> {
   db: DB<TState, TInputEvents, TOutputEvents>;
   processor: Processor<TState, TInputEvents, TOutputEvents>;
   indexStateFuncs: Array<IndexStateFunc<TState>>;
+
+  /**
+   * @param name The name of the facet. Used as a prefix for DynamoDB _id and is stored in _facet property.
+   * @param db the database to use
+   * @param processor The processor to use to process events.
+   * @param indexStateFuncs Functions to create secondary indexes for the state record.
+   */
   constructor(
     name: string,
     db: DB<TState, TInputEvents, TOutputEvents>,

@@ -188,6 +188,64 @@ describe("facet", () => {
       // Assert
       expect(db.putState as jest.Mock).toHaveBeenCalledTimes(2);
     });
+    it("stores new events in the database with a secondary facet", async () => {
+      // Arrange
+      interface EventForTest {
+        name: string;
+      }
+
+      const event1 = {
+        name: "event1",
+      };
+      const event21 = {
+        name: "event2.1",
+      };
+      const event22 = {
+        name: "event2.2",
+      };
+      const firstState: TestItem = { a: "0", b: "empty" };
+      const secondState: TestItem = { a: "0", b: "not empty" };
+
+      // Create the rules.
+      const publishEvent = new Map<
+        RecordTypeName,
+        StateUpdater<TestItem, EventForTest, EventForTest, EventForTest>
+      >();
+      publishEvent.set("Record1", (input) => {
+        input.state = firstState;
+        input.publish("eventName1", event1);
+        return input.state;
+      });
+      publishEvent.set("Record2", (input) => {
+        input.state = secondState;
+        input.publish("eventName2.1", event21);
+        input.publish("eventName2.2", event22);
+        return input.state;
+      });
+
+      const db = getMockDB<EventForTest, EventForTest>();
+      (db.putState as jest.Mock).mockResolvedValue({});
+      const processor = new Processor<TestItem, EventForTest, EventForTest>(publishEvent);
+      const facet = new Facet<TestItem, EventForTest, EventForTest>("TEST_FACET", db, processor, [
+        (state: StateRecord<TestItem>): StateRecord<TestItem> => ({
+          ...state,
+          _id: "TEST_FACET/secondaryIndex/id",
+        }),
+      ]);
+
+      // Act
+      const inboundEvent1 = new Event<EventForTest>("Record1", {
+        name: "test",
+      });
+      const inboundEvent2 = new Event<EventForTest>("Record2", {
+        name: "test2",
+      });
+      await facet.append("id", inboundEvent1);
+      await facet.append("id", inboundEvent2);
+
+      // Assert
+      expect(db.putState as jest.Mock).toHaveBeenCalledTimes(2);
+    });
     it("uses defaults if no state record exists", async () => {
       const initial: TestItem = { a: "0", b: "empty" };
       const db = getDefaultMockDB();
