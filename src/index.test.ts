@@ -3,8 +3,6 @@ import { RecordTypeName, StateUpdater, StateUpdaterInput, Processor, Event } fro
 import {
   BaseRecord,
   StateRecord,
-  InboundRecord,
-  OutboundRecord,
   newStateRecord,
   newInboundRecord,
   newOutboundRecord,
@@ -71,6 +69,8 @@ interface TestEvent {
 }
 
 const getDefaultMockDB = () => new MockDB<TestItem, TestEvent, TestEvent>();
+const getMockDB = <TInputEvent, TOutputEvent>() =>
+  new MockDB<TestItem, TInputEvent, TOutputEvent>();
 
 describe("facet", () => {
   describe("get", () => {
@@ -122,6 +122,7 @@ describe("facet", () => {
   });
   describe("append", () => {
     it("stores new events in the database", async () => {
+      // Arrange
       interface EventForTest {
         name: string;
       }
@@ -135,18 +136,8 @@ describe("facet", () => {
       const event22 = {
         name: "event2.2",
       };
-      const initial: TestItem = { a: "0", b: "empty" };
-      const db = getDefaultMockDB();
-      (db.putState as jest.Mock).mockImplementation(async (state, _previousSeq, _data, events) => {
-        expect(state).toEqual(JSON.stringify(initial));
-        expect(events.length).toBe(3);
-        expect(events[0]._typ).toEqual("eventName1");
-        expect(events[0]._itm).toBe(JSON.stringify(event1));
-        expect(events[1]._typ).toEqual("eventName2.1");
-        expect(events[1]._itm).toBe(JSON.stringify(event21));
-        expect(events[2]._typ).toEqual("eventName2.2");
-        expect(events[2]._itm).toBe(JSON.stringify(event22));
-      });
+      const firstState: TestItem = { a: "0", b: "empty" };
+      const secondState: TestItem = { a: "0", b: "not empty" };
 
       // Create the rules.
       const publishEvent = new Map<
@@ -154,14 +145,48 @@ describe("facet", () => {
         StateUpdater<TestItem, EventForTest, EventForTest, EventForTest>
       >();
       publishEvent.set("Record1", (input) => {
+        input.state = firstState;
         input.publish("eventName1", event1);
         return input.state;
       });
       publishEvent.set("Record2", (input) => {
+        input.state = secondState;
         input.publish("eventName2.1", event21);
         input.publish("eventName2.2", event22);
         return input.state;
       });
+
+      const db = getMockDB<EventForTest, EventForTest>();
+      // Mock this function twice. First call will use the first implementation, \
+      // second call will use the second implementation.
+      (db.putState as jest.Mock)
+        .mockImplementationOnce(async (state, _previousSeq, _data, events) => {
+          expect(state).toEqual(expect.objectContaining({ ...firstState }));
+          expect(events).toHaveLength(1);
+        })
+        .mockImplementationOnce(async (state, _previousSeq, _data, events) => {
+          expect(state).toEqual(
+            expect.objectContaining({
+              ...secondState,
+            }),
+          );
+          expect(events).toHaveLength(2);
+        });
+      const processor = new Processor<TestItem, EventForTest, EventForTest>(publishEvent);
+      const facet = new Facet<TestItem, EventForTest, EventForTest>("name", db, processor);
+
+      // Act
+      const inboundEvent1 = new Event<EventForTest>("Record1", {
+        name: "test",
+      });
+      const inboundEvent2 = new Event<EventForTest>("Record2", {
+        name: "test2",
+      });
+      await facet.append("id", inboundEvent1);
+      await facet.append("id", inboundEvent2);
+
+      // Assert
+      expect(db.putState as jest.Mock).toHaveBeenCalledTimes(2);
     });
     it("uses defaults if no state record exists", async () => {
       const initial: TestItem = { a: "0", b: "empty" };
