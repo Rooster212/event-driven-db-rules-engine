@@ -18,7 +18,6 @@ export interface GetOutput<T> {
   record: BaseRecord;
   item: T;
 }
-
 export interface ChangeOutput<TState, TOutputEventType> {
   seq: number;
   item: TState;
@@ -63,15 +62,33 @@ export class Facet<TState, TInputEvents, TOutputEvents> {
     this.processor = processor;
     this.indexStateFuncs = indexStateFuncs;
   }
+
+  /**
+   * Retrieve the item state
+   * @param id the id of the item to retrieve
+   * @returns The state of the item
+   */
   async get(id: string): Promise<GetOutput<TState> | null> {
     const state = await this.db.getState(id);
     return state ? mapRecordToOutput(state) : null;
   }
 
+  /**
+   * Retrieves records from the database by a secondary index.
+   * @param by the index to query by
+   * @param id the id of the item to retrieve
+   * @returns Array of records
+   */
   async query(by: string, id: string): Promise<Array<GetOutput<TState>>> {
     return (await this.db.queryRecordsBySecondaryIndex(by, id)).map((r) => mapRecordToOutput(r));
   }
 
+  /**
+   * Retrieves records from the database by primary index, with a sort key prefix.
+   * @param rng the sort key prefix
+   * @param id the id of the item to retrieve
+   * @returns Array of records
+   */
   async queryByRange(rng: string, id: string): Promise<Array<GetOutput<TState>>> {
     return (await this.db.queryRecordsByRangePrefix(rng, id)).map((r) => mapRecordToOutput(r));
   }
@@ -119,9 +136,17 @@ export class Facet<TState, TInputEvents, TOutputEvents> {
     const seq = stateRecord ? stateRecord.record._seq : 0;
     return this.appendTo(id, state, seq, ...newInboundEvents);
   }
-  // appendTo appends new events to an item that has already been retrieved from the
-  // database. This method executes a single database command to update the state
-  // record.
+
+  /**
+   * appendTo appends new events to an item that has already been retrieved from the
+   * database. This method executes a single database command to update the state
+   * record.
+   * @param id the id of the item to update
+   * @param state the state of the item to update
+   * @param seq sequence number of the item to update
+   * @param newInboundEvents any additional new inbound events
+   * @returns
+   */
   async appendTo(
     id: string,
     state: TState | null,
@@ -136,9 +161,15 @@ export class Facet<TState, TInputEvents, TOutputEvents> {
       ...newInboundEvents,
     );
   }
-  // recalculate all the state by reading all previous records in the facet item and
-  // processing each inbound event record. This method may execute multiple Query operations
-  // and a single put operation.
+
+  /**
+   * Recalculate all the state by reading all previous records in the facet item and
+   * processing each inbound event record. This method may execute multiple Query operations
+   * and a single put operation.
+   * @param id the id of the item to update
+   * @param newInboundEvents any additional new inbound events
+   * @returns
+   */
   async recalculate(
     id: string,
     ...newInboundEvents: Array<Event<TInputEvents>>
@@ -160,7 +191,15 @@ export class Facet<TState, TInputEvents, TOutputEvents> {
     return events as unknown as Event<TInputEvents>[];
   };
 
-  // calculate the state.
+  /**
+   * Calculate the state and write it to the database.
+   * @param id the id of the item to update
+   * @param state the state of the item to update
+   * @param seq the sequence number of the item to update
+   * @param pastInboundEvents the past inbound events to use in the calculation
+   * @param newInboundEvents the new inbound events to use in the calculation
+   * @returns The new state of the item and any outbound events.
+   */
   private async calculate(
     id: string,
     state: TState | null,
@@ -204,7 +243,11 @@ export class Facet<TState, TInputEvents, TOutputEvents> {
   }
 }
 
-// sortRecords sorts event records by their sequence number ascending.
+/**
+ * Sorts event records by their sequence number ascending.
+ * @param eventRecords the event records to sort
+ * @returns Array of sorted event records
+ */
 const sortRecords = (eventRecords: Array<BaseRecord>): Array<BaseRecord> =>
   eventRecords.sort((a, b) => {
     if (a._seq < b._seq) {
@@ -216,6 +259,11 @@ const sortRecords = (eventRecords: Array<BaseRecord>): Array<BaseRecord> =>
     return 1;
   });
 
+/**
+ * Maps the internal database record to a state record.
+ * @param record the record to convert to a state record
+ * @returns the output record
+ */
 const mapRecordToOutput = <TState, TInputEvents, TOutputEvents>(
   record: QueryRecordsResult<TState, TInputEvents, TOutputEvents>,
 ) => {
