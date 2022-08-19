@@ -1,6 +1,6 @@
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
-import { Facet } from ".";
-import { EventDB } from "./db";
+import { Facet, IndexStateFunc } from ".";
+import { EventDB, StateRecord } from "./db";
 import { TestCreateLocalTable, TestDB } from "./integration-test-helpers";
 import { Processor, RecordTypeName, StateUpdater, StateUpdaterInput, Event } from "./processor";
 
@@ -15,6 +15,7 @@ interface BankAccount {
   ownerLast: string;
   balance: number;
   minimumBalance: number;
+  customerEmail: string;
 }
 const BankAccountRecordName = "BANK_ACCOUNT";
 
@@ -23,6 +24,7 @@ type InboundEvents = AccountCreation | AccountUpdate | Transaction;
 
 interface AccountCreation {
   id: string;
+  customerEmail: string;
 }
 const AccountCreationRecordName = "ACCOUNT_CREATION";
 interface AccountUpdate {
@@ -75,6 +77,7 @@ describe("Ledger example e2e test", () => {
         input: StateUpdaterInput<BankAccount, InboundEvents, OutboundEvents, AccountCreation>,
       ): BankAccount => {
         input.state.id = input.current.id;
+        input.state.customerEmail = input.current.customerEmail;
         return input.state;
       },
     );
@@ -125,11 +128,22 @@ describe("Ledger example e2e test", () => {
       initialAccount,
     );
 
+    const byCustomerEmailIndex = "byCustomerEmail";
+    const indexByCustomerEmailFunc: IndexStateFunc<BankAccount> = (
+      state: StateRecord<BankAccount>,
+    ) => {
+      return {
+        ...state,
+        _id: `${state._facet}/${byCustomerEmailIndex}/${state.customerEmail}`,
+      };
+    };
+
     // Can now create a ledger "Facet" in our DynamoDB table.
     const ledger = new Facet<BankAccount, InboundEvents, OutboundEvents>(
       BankAccountRecordName,
       db,
       processor,
+      [indexByCustomerEmailFunc],
     );
 
     // Let's create a new account.
@@ -140,6 +154,7 @@ describe("Ledger example e2e test", () => {
       accountId,
       new Event<AccountCreation>(AccountCreationRecordName, {
         id: accountId,
+        customerEmail: "test@example.com",
       }),
     );
 
@@ -209,5 +224,11 @@ describe("Ledger example e2e test", () => {
       }),
     );
     expect(finalBalance.item.balance).toBe(0);
+
+    // We also can retrieve the customer account by their email
+    const customerAccount = await ledger.query(byCustomerEmailIndex, "test@example.com");
+    expect(customerAccount).toHaveLength(1);
+    expect(customerAccount[0].item.balance).toEqual(0);
+    expect(customerAccount[0].record._id).toEqual("BANK_ACCOUNT/byCustomerEmail/test@example.com");
   });
 });
