@@ -12,6 +12,8 @@ cp package-lock.json ./dist
 cp LICENSE.txt ./dist
 cd ./dist
 
+set +v
+
 if [ "$1" = "dry-run" ]; then
   echo "================================================="
   echo "Dry-run of publish"
@@ -20,6 +22,5 @@ if [ "$1" = "dry-run" ]; then
   echo "================================================="
 else
   echo "Publishing package"
-  npm publish --dry-run
+  npm publish
 fi
-
