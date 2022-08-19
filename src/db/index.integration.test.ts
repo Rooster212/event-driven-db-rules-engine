@@ -1,14 +1,12 @@
-import { CreateTableCommand, DeleteTableCommand, DeleteTableCommandOutput, DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import {
-  DynamoDBDocumentClient,
-} from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 
-import { EventDB, newStateRecord, newInboundRecord, newOutboundRecord } from ".";
+import { EventDB, newStateRecord, newInboundRecord, newOutboundRecord, BaseRecord } from ".";
+import { TestCreateLocalTable } from "../integration-test-helpers";
 
 describe("EventDB", () => {
   describe("getState", () => {
     it("can get the state record if it exists", async () => {
-      const testDB = await createLocalTable();
+      const testDB = await TestCreateLocalTable();
       try {
         const db = new EventDB(testDB.client, testDB.name, "facetName");
         const state = { key: "value" };
@@ -24,7 +22,7 @@ describe("EventDB", () => {
   });
   describe("putState", () => {
     it("can put a new state record", async () => {
-      const testDB = await createLocalTable();
+      const testDB = await TestCreateLocalTable();
       try {
         const db = new EventDB(testDB.client, testDB.name, "facetName");
         const state1 = { key: "value1" };
@@ -40,8 +38,56 @@ describe("EventDB", () => {
         await testDB.delete();
       }
     });
+    it("can put a new state record with a secondary index record", async () => {
+      const testDB = await TestCreateLocalTable();
+      try {
+        const secondaryIndexForRecordFunc = (r: BaseRecord, idValue: string): BaseRecord => ({
+          ...r,
+          _id: `facetName/secondaryIndex/${idValue}`,
+        });
+
+        const db = new EventDB(testDB.client, testDB.name, "facetName");
+
+        // State 1
+        const state1 = { key: "value1" };
+        const stateRecord1 = newStateRecord<any>("facetName", "idValue", 1, state1, new Date());
+        await db.putState(
+          stateRecord1,
+          0,
+          [],
+          [],
+          [secondaryIndexForRecordFunc(stateRecord1, "idValue")],
+        );
+
+        // State 2
+        const state2 = { key: "value2" };
+        const stateRecord2 = newStateRecord<any>("facetName", "idValue", 2, state2, new Date());
+        await db.putState(
+          stateRecord2,
+          1,
+          [],
+          [],
+          [secondaryIndexForRecordFunc(stateRecord2, "idValue")],
+        );
+
+        const actual = await db.getState("idValue");
+        expect(actual).toEqual(stateRecord2);
+
+        const actualSecondary = (await db.queryRecordsBySecondaryIndex(
+          "secondaryIndex",
+          "idValue",
+        )) as Array<BaseRecord & { key: string }>;
+        expect(actualSecondary).toHaveLength(1);
+        expect(actualSecondary[0]).toEqual({
+          ...stateRecord2,
+          _id: "facetName/secondaryIndex/idValue",
+        });
+      } finally {
+        await testDB.delete();
+      }
+    });
     it("can put inbound records alongside a new state record", async () => {
-      const testDB = await createLocalTable();
+      const testDB = await TestCreateLocalTable();
       try {
         const db = new EventDB(testDB.client, testDB.name, "facetName");
         const state = { key: "value1" };
@@ -66,14 +112,14 @@ describe("EventDB", () => {
         ];
         await db.putState(stateRecord, 0, inboundRecords);
 
-        const actual = await db.getRecords("idValue");
+        const actual = await db.queryRecords("idValue");
         expect(actual).toEqual([...inboundRecords, stateRecord]);
       } finally {
         await testDB.delete();
       }
     });
     it("can put outbound records alongside a new state record", async () => {
-      const testDB = await createLocalTable();
+      const testDB = await TestCreateLocalTable();
       try {
         const db = new EventDB(testDB.client, testDB.name, "facetName");
         const state = { key: "value1" };
@@ -118,7 +164,7 @@ describe("EventDB", () => {
         ];
         await db.putState(stateRecord, 0, inboundRecords, outboundRecords);
 
-        const actual = await db.getRecords("idValue");
+        const actual = await db.queryRecords("idValue");
         expect(actual).toEqual([...inboundRecords, ...outboundRecords, stateRecord]);
       } finally {
         await testDB.delete();
@@ -203,62 +249,3 @@ describe("EventDB", () => {
     });
   });
 });
-
-interface DB {
-  name: string;
-  client: DynamoDBDocumentClient;
-  delete: () => Promise<DeleteTableCommandOutput>;
-}
-
-const randomTableName = () => `eventdb_test_${new Date().getTime()}`;
-
-const createLocalTable = async (): Promise<DB> => {
-  const options = {
-    region: "eu-west-1",
-    endpoint: "http://localhost:8000",
-    credentials: {
-      accessKeyId: "5dyqqr",
-      secretAccessKey: "fqm4vf",
-    },
-  };
-
-  const ddb = new DynamoDBClient(options);
-
-  const tableName = randomTableName();
-  const createTableCommand = new CreateTableCommand({
-    KeySchema: [
-      {
-        KeyType: "HASH",
-        AttributeName: "_id",
-      },
-      {
-        KeyType: "RANGE",
-        AttributeName: "_rng",
-      },
-    ],
-    TableName: tableName,
-    AttributeDefinitions: [
-      {
-        AttributeName: "_id",
-        AttributeType: "S",
-      },
-      {
-        AttributeName: "_rng",
-        AttributeType: "S",
-      },
-    ],
-    BillingMode: "PAY_PER_REQUEST",
-  })
-  await ddb.send(createTableCommand);
-
-  const deleteTableFunc = async () => {
-    const deleteTableCommand = new DeleteTableCommand({ TableName: tableName });
-    return await ddb.send(deleteTableCommand);
-  }
-
-  return {
-    name: tableName,
-    client: DynamoDBDocumentClient.from(ddb),
-    delete: deleteTableFunc,
-  };
-};
