@@ -9,8 +9,8 @@ import {
   newStateRecord,
   newInboundRecord,
   newOutboundRecord,
-  DB,
   QueryRecordsResult,
+  DB,
 } from "./db";
 import { Processor, Event } from "./processor";
 
