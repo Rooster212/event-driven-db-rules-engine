@@ -71,7 +71,7 @@ export class Facet<TState, TInputEvents, TOutputEvents> {
   }
 
   /**
-   * Retrieve the item state
+   * Retrieve the item state. This will query the database.
    * @param id the id of the item to retrieve
    * @returns The state of the item
    */
@@ -81,7 +81,7 @@ export class Facet<TState, TInputEvents, TOutputEvents> {
   }
 
   /**
-   * Retrieves records from the database by a secondary index.
+   * Retrieves records from the database by a secondary index. This will query the database.
    * @param by the index to query by
    * @param id the id of the item to retrieve
    * @returns Array of records
@@ -91,7 +91,7 @@ export class Facet<TState, TInputEvents, TOutputEvents> {
   }
 
   /**
-   * Retrieves records from the database by primary index, with a sort key prefix.
+   * Retrieves records from the database by primary index, with a sort key prefix. This will query the database.
    * @param rng the sort key prefix
    * @param id the id of the item to retrieve
    * @returns Array of records
@@ -147,12 +147,12 @@ export class Facet<TState, TInputEvents, TOutputEvents> {
   /**
    * appendTo appends new events to an item that has already been retrieved from the
    * database. This method executes a single database command to update the state
-   * record.
+   * record and any other secondary IDs.
    * @param id the id of the item to update
    * @param state the state of the item to update
    * @param seq sequence number of the item to update
    * @param newInboundEvents any additional new inbound events
-   * @returns
+   * @returns The new state of the item along with the new outbound events.
    */
   async appendTo(
     id: string,
@@ -175,7 +175,7 @@ export class Facet<TState, TInputEvents, TOutputEvents> {
    * and a single put operation.
    * @param id the id of the item to update
    * @param newInboundEvents any additional new inbound events
-   * @returns
+   * @returns The result of the recalculation, including the state.
    */
   async recalculate(
     id: string,
