@@ -1,17 +1,12 @@
-import {
-  CreateTableCommand,
-  DeleteTableCommand,
-  DeleteTableCommandOutput,
-  DynamoDBClient,
-} from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 
 import { EventDB, newStateRecord, newInboundRecord, newOutboundRecord, BaseRecord } from ".";
+import { TestCreateLocalTable } from "../integration-test-helpers";
 
 describe("EventDB", () => {
   describe("getState", () => {
     it("can get the state record if it exists", async () => {
-      const testDB = await createLocalTable();
+      const testDB = await TestCreateLocalTable();
       try {
         const db = new EventDB(testDB.client, testDB.name, "facetName");
         const state = { key: "value" };
@@ -27,7 +22,7 @@ describe("EventDB", () => {
   });
   describe("putState", () => {
     it("can put a new state record", async () => {
-      const testDB = await createLocalTable();
+      const testDB = await TestCreateLocalTable();
       try {
         const db = new EventDB(testDB.client, testDB.name, "facetName");
         const state1 = { key: "value1" };
@@ -44,7 +39,7 @@ describe("EventDB", () => {
       }
     });
     it("can put a new state record with a secondary index record", async () => {
-      const testDB = await createLocalTable();
+      const testDB = await TestCreateLocalTable();
       try {
         const secondaryIndexForRecordFunc = (r: BaseRecord, idValue: string): BaseRecord => ({
           ...r,
@@ -92,7 +87,7 @@ describe("EventDB", () => {
       }
     });
     it("can put inbound records alongside a new state record", async () => {
-      const testDB = await createLocalTable();
+      const testDB = await TestCreateLocalTable();
       try {
         const db = new EventDB(testDB.client, testDB.name, "facetName");
         const state = { key: "value1" };
@@ -124,7 +119,7 @@ describe("EventDB", () => {
       }
     });
     it("can put outbound records alongside a new state record", async () => {
-      const testDB = await createLocalTable();
+      const testDB = await TestCreateLocalTable();
       try {
         const db = new EventDB(testDB.client, testDB.name, "facetName");
         const state = { key: "value1" };
@@ -254,62 +249,3 @@ describe("EventDB", () => {
     });
   });
 });
-
-interface DB {
-  name: string;
-  client: DynamoDBDocumentClient;
-  delete: () => Promise<DeleteTableCommandOutput>;
-}
-
-const randomTableName = () => `eventdb_test_${new Date().getTime()}`;
-
-const createLocalTable = async (): Promise<DB> => {
-  const options = {
-    region: "eu-west-1",
-    endpoint: "http://localhost:8000",
-    credentials: {
-      accessKeyId: "5dyqqr",
-      secretAccessKey: "fqm4vf",
-    },
-  };
-
-  const ddb = new DynamoDBClient(options);
-
-  const tableName = randomTableName();
-  const createTableCommand = new CreateTableCommand({
-    KeySchema: [
-      {
-        KeyType: "HASH",
-        AttributeName: "_id",
-      },
-      {
-        KeyType: "RANGE",
-        AttributeName: "_rng",
-      },
-    ],
-    TableName: tableName,
-    AttributeDefinitions: [
-      {
-        AttributeName: "_id",
-        AttributeType: "S",
-      },
-      {
-        AttributeName: "_rng",
-        AttributeType: "S",
-      },
-    ],
-    BillingMode: "PAY_PER_REQUEST",
-  });
-  await ddb.send(createTableCommand);
-
-  const deleteTableFunc = async () => {
-    const deleteTableCommand = new DeleteTableCommand({ TableName: tableName });
-    return await ddb.send(deleteTableCommand);
-  };
-
-  return {
-    name: tableName,
-    client: DynamoDBDocumentClient.from(ddb),
-    delete: deleteTableFunc,
-  };
-};
