@@ -1,7 +1,7 @@
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import { Facet } from ".";
 import { EventDB } from "./db";
-import { TestCreateLocalTable } from "./integration-test-helpers";
+import { TestCreateLocalTable, TestDB } from "./integration-test-helpers";
 import { Processor, RecordTypeName, StateUpdater, StateUpdaterInput, Event } from "./processor";
 
 // The account Facet has multiple records.
@@ -44,9 +44,21 @@ interface AccountOverdrawn {
   accountId: string;
 }
 const AccountOverdrawnEventName = "accountOverdrawn";
+
+let testDB: TestDB;
 describe("Ledger example e2e test", () => {
+  beforeEach(async () => {
+    testDB = await TestCreateLocalTable();
+  });
+
+  afterEach(() => {
+    if (testDB) {
+      testDB.delete();
+    }
+  });
+
   it("Runs a ledger example", async () => {
-    const testDB = await TestCreateLocalTable();
+    testDB = await TestCreateLocalTable();
     const db = new EventDB<BankAccount, InboundEvents, OutboundEvents>(
       DynamoDBDocumentClient.from(testDB.client),
       testDB.name,

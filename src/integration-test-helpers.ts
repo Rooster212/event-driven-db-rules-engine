@@ -12,7 +12,8 @@ interface DB {
   delete: () => Promise<DeleteTableCommandOutput>;
 }
 
-const randomTableName = () => `eventdb_test_${new Date().getTime()}`;
+const randomTableName = () =>
+  `eventdb_test_${new Date().getTime()}_${Math.floor(Math.random() * 1000)}`;
 
 const createLocalTable = async (): Promise<DB> => {
   const options = {
