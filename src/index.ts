@@ -29,7 +29,7 @@ export interface ChangeOutput<TState, TOutputEventType> {
  * @description a function that will reshape the data for storage to be queried
  * by a secondary index that we write (i.e. not a DynamoDB GSI).
  */
-export type IndexStateFunc<TState> = (state: StateRecord<TState>) => StateRecord<TState>;
+export type IndexStateFunc<TState> = (state: StateRecord<TState>) => StateRecord<TState> | null;
 
 interface RecordsOutput<TState, TInputEvents, TOutputEvents> {
   state: StateRecord<TState> | null;

@@ -1,9 +1,13 @@
-// StateUpdater<TState, TInputEvents, TOutputEvents, TCurrent> defines a function used to update the state given the current incoming event.
+/**
+ * This type defines a function used to update the state given the current incoming event.
+ */
 export type StateUpdater<TState, TInputEvents, TOutputEvents, TCurrent extends TInputEvents> = (
   input: StateUpdaterInput<TState, TInputEvents, TOutputEvents, TCurrent>,
 ) => TState;
 
-// StateUpdaterInput is the input to the StateUpdater function.
+/**
+ * StateUpdaterInput is the input to the StateUpdater function.
+ */
 export interface StateUpdaterInput<
   TState,
   TInputEvents,
@@ -28,19 +32,25 @@ export interface StateUpdaterInput<
   publish: (name: string, event: TOutputEvents) => void;
 }
 
-// An Event can be an inbound event that makes up the facet state, or an outbound event emitted
-// due to a state change. Reading through all the inbound events, and applying the rules creates
-// a materialised view. This view is the "STATE" record stored in the database.
+/**
+ * An Event can be an inbound event that makes up the facet state, or an outbound event emitted
+ * due to a state change. Reading through all the inbound events, and applying the rules creates
+ * a materialised view. This view is the "STATE" record stored in the database.
+ */
 export class Event<TEvent> {
   constructor(readonly type: string, readonly event: TEvent) {}
 }
 
-// RecordTypeName should be the name of the record's type, e.g. AccountDetails.
+/**
+ * RecordTypeName should be the name of the record's type, e.g. AccountDetails
+ */
 export type RecordTypeName = string;
 
-// Initializer constructs the default value of an item. For example, if the item is a
-// bank account, perhaps the starting balance would be zero, and an overdraft of 1000 would
-// be set.
+/**
+ * Initializer constructs the default value of an item. For example, if the item is a
+ * bank account, perhaps the starting balance would be zero, and an overdraft of 1000 would
+ * be set.
+ */
 export type Initializer<T> = () => T;
 
 export interface ProcessResult<T, TOutputEvents> {
@@ -49,10 +59,17 @@ export interface ProcessResult<T, TOutputEvents> {
   newOutboundEvents: Array<Event<TOutputEvents>>;
 }
 
-// A Processor processes events and updates the state of the state record.
+/**
+ * A Processor processes events and updates the state of the state record.
+ * */
 export class Processor<TState, TInputEvents, TOutputEvents> {
   rules: Map<RecordTypeName, StateUpdater<TState, TInputEvents, TOutputEvents, TInputEvents>>;
   initial: Initializer<TState>;
+  /**
+   *
+   * @param rules a map of rules (AKA 'the rules engine') to run events through.
+   * @param initial a function that returns the initial state (optional, default function returns an empty object if not provided).
+   */
   constructor(
     rules: Map<RecordTypeName, StateUpdater<TState, TInputEvents, TOutputEvents, TInputEvents>>,
     initial: Initializer<TState> = () => ({} as TState),

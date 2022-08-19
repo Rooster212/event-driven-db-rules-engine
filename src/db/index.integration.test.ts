@@ -6,7 +6,7 @@ import {
 } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 
-import { EventDB, newStateRecord, newInboundRecord, newOutboundRecord } from ".";
+import { EventDB, newStateRecord, newInboundRecord, newOutboundRecord, BaseRecord } from ".";
 
 describe("EventDB", () => {
   describe("getState", () => {
@@ -39,6 +39,54 @@ describe("EventDB", () => {
 
         const actual = await db.getState("idValue");
         expect(actual).toEqual(stateRecord2);
+      } finally {
+        await testDB.delete();
+      }
+    });
+    it("can put a new state record with a secondary index record", async () => {
+      const testDB = await createLocalTable();
+      try {
+        const secondaryIndexForRecordFunc = (r: BaseRecord, idValue: string): BaseRecord => ({
+          ...r,
+          _id: `facetName/secondaryIndex/${idValue}`,
+        });
+
+        const db = new EventDB(testDB.client, testDB.name, "facetName");
+
+        // State 1
+        const state1 = { key: "value1" };
+        const stateRecord1 = newStateRecord<any>("facetName", "idValue", 1, state1, new Date());
+        await db.putState(
+          stateRecord1,
+          0,
+          [],
+          [],
+          [secondaryIndexForRecordFunc(stateRecord1, "idValue")],
+        );
+
+        // State 2
+        const state2 = { key: "value2" };
+        const stateRecord2 = newStateRecord<any>("facetName", "idValue", 2, state2, new Date());
+        await db.putState(
+          stateRecord2,
+          1,
+          [],
+          [],
+          [secondaryIndexForRecordFunc(stateRecord2, "idValue")],
+        );
+
+        const actual = await db.getState("idValue");
+        expect(actual).toEqual(stateRecord2);
+
+        const actualSecondary = (await db.queryRecordsBySecondaryIndex(
+          "secondaryIndex",
+          "idValue",
+        )) as Array<BaseRecord & { key: string }>;
+        expect(actualSecondary).toHaveLength(1);
+        expect(actualSecondary[0]).toEqual({
+          ...stateRecord2,
+          _id: "facetName/secondaryIndex/idValue",
+        });
       } finally {
         await testDB.delete();
       }

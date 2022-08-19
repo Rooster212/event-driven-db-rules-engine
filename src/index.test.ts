@@ -224,7 +224,30 @@ describe("facet", () => {
       });
 
       const db = getMockDB<EventForTest, EventForTest>();
-      (db.putState as jest.Mock).mockResolvedValue({});
+      (db.putState as jest.Mock)
+        .mockImplementationOnce(
+          async (state, _previousSeq, _data, events, secondaryIndexRecords) => {
+            expect(state).toEqual(expect.objectContaining({ ...firstState }));
+            expect(events).toHaveLength(1);
+            expect(secondaryIndexRecords).toHaveLength(1);
+            expect(secondaryIndexRecords[0]).toEqual(
+              expect.objectContaining({
+                _id: "TEST_FACET/secondaryIndex/id",
+              }),
+            );
+          },
+        )
+        .mockImplementationOnce(
+          async (state, _previousSeq, _data, events, secondaryIndexRecords) => {
+            expect(state).toEqual(
+              expect.objectContaining({
+                ...secondState,
+              }),
+            );
+            expect(events).toHaveLength(2);
+            expect(secondaryIndexRecords).toHaveLength(1);
+          },
+        );
       const processor = new Processor<TestItem, EventForTest, EventForTest>(publishEvent);
       const facet = new Facet<TestItem, EventForTest, EventForTest>("TEST_FACET", db, processor, [
         (state: StateRecord<TestItem>): StateRecord<TestItem> => ({

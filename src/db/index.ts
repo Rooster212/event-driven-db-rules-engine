@@ -119,6 +119,11 @@ const createPutState = (tableName: string, r: BaseRecord, previousSeq: number) =
   },
 });
 
+const createPutSecondaryIndex = (tableName: string, r: BaseRecord) => ({
+  TableName: tableName,
+  Item: r,
+});
+
 export interface DB<TState, TInputEvents, TOutputEvents> {
   getState(id: string): Promise<StateRecord<TState>>;
   putState(
@@ -211,7 +216,7 @@ export class EventDB<TState, TInputEvents, TOutputEvents>
     const putItems = [
       ...inbound.map((i) => createPutItem(this.table, i)),
       ...outbound.map((o) => createPutItem(this.table, o)),
-      ...secondaryIndexRecords.map((s) => createPutItem(this.table, s)),
+      ...secondaryIndexRecords.map((s) => createPutSecondaryIndex(this.table, s)),
       createPutState(this.table, state, previousSeq),
     ].map((putItem) => ({ Put: putItem }));
 
