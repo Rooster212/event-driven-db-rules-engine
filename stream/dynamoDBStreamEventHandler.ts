@@ -6,7 +6,7 @@ import { RetentionDays } from "aws-cdk-lib/aws-logs";
 import { Construct } from "constructs";
 import fs from "fs";
 
-export interface ClearCycleDynamoDBStreamEventHandlerProps
+export interface DynamoDBStreamEventHandlerProps
   extends Omit<NodejsFunctionProps, "architecture" | "runtime" | "code" | "handler"> {
   /**
    * The event source that the events published should be associated with.
@@ -20,14 +20,14 @@ export interface ClearCycleDynamoDBStreamEventHandlerProps
   targetEventBus: IEventBus;
 }
 
-export class ClearCycleDynamoDBStreamEventHandler extends NodejsFunction {
+export class DynamoDBStreamEventHandler extends NodejsFunction {
   /**
    * Creates a Lambda function that will write outbound events from the stream to the event bus.
    * @param scope The scope in which to create the handler.
    * @param id the ID of the construct.
-   * @param props The properties to pass. See {@link ClearCycleDynamoDBStreamEventHandlerProps}.
+   * @param props The properties to pass. See {@link DynamoDBStreamEventHandlerProps}.
    */
-  constructor(scope: Construct, id: string, props: ClearCycleDynamoDBStreamEventHandlerProps) {
+  constructor(scope: Construct, id: string, props: DynamoDBStreamEventHandlerProps) {
     super(scope, id, {
       bundling: {
         minify: true,

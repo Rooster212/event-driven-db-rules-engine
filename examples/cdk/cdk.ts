@@ -6,7 +6,7 @@ import { DynamoEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import { RetentionDays } from "aws-cdk-lib/aws-logs";
 import { Construct } from "constructs";
-import { ClearCycleDynamoDBStreamEventHandler } from "../../stream/dynamoDBStreamEventHandler";
+import { DynamoDBStreamEventHandler } from "../../stream/dynamoDBStreamEventHandler";
 
 export class ExampleDynamoDBEventDrivenArchitectureStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
@@ -28,7 +28,7 @@ export class ExampleDynamoDBEventDrivenArchitectureStack extends Stack {
 
     const eventBus = new EventBus(this, "example-event-bus");
 
-    const dynamoDBStreamHandler = new ClearCycleDynamoDBStreamEventHandler(
+    const dynamoDBStreamHandler = new DynamoDBStreamEventHandler(
       this,
       "example-clear-cycle-dynamodb-stream-event-handler",
       {
