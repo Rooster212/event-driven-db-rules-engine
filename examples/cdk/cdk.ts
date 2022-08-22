@@ -33,12 +33,9 @@ export class ExampleDynamoDBEventDrivenArchitectureStack extends Stack {
       "example-clear-cycle-dynamodb-stream-event-handler",
       {
         eventSource: "my-event-source",
-        eventBusName: eventBus.eventBusName,
+        targetEventBus: eventBus,
       },
     );
-
-    // This allows the stream handler to write to the event bus
-    eventBus.grantPutEventsTo(dynamoDBStreamHandler);
 
     // Note how the stream handler is not given direct access to the DynamoDB table
 
