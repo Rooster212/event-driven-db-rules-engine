@@ -6,6 +6,7 @@ import { DynamoEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import { RetentionDays } from "aws-cdk-lib/aws-logs";
 import { Construct } from "constructs";
+import { ClearCycleDynamoDBStreamEventHandler } from "../../stream/dynamoDBStreamEventHandler";
 
 export class ExampleDynamoDBEventDrivenArchitectureStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
@@ -27,15 +28,14 @@ export class ExampleDynamoDBEventDrivenArchitectureStack extends Stack {
 
     const eventBus = new EventBus(this, "example-event-bus");
 
-    const dynamoDBStreamHandler = new NodejsFunction(this, "example-dynamodb-stream-handler", {
-      logRetention: RetentionDays.ONE_WEEK,
-      entry: "./examples/cdk/myDynamoDBStreamEventHandler.ts",
-      runtime: Runtime.NODEJS_16_X,
-      functionName: "my-dynamodb-stream-handler",
-      bundling: {
-        sourceMap: true,
+    const dynamoDBStreamHandler = new ClearCycleDynamoDBStreamEventHandler(
+      this,
+      "example-clear-cycle-dynamodb-stream-event-handler",
+      {
+        eventSource: "my-event-source",
+        eventBusName: eventBus.eventBusName,
       },
-    });
+    );
 
     // This allows the stream handler to write to the event bus
     eventBus.grantPutEventsTo(dynamoDBStreamHandler);

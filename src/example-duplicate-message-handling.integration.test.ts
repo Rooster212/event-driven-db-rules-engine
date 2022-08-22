@@ -1,4 +1,3 @@
-import { ExportTableToPointInTimeCommand } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import { Facet } from ".";
 import { EventDB } from "./db";
