@@ -61,7 +61,11 @@ const createLocalTable = async (): Promise<DB> => {
 
   return {
     name: tableName,
-    client: DynamoDBDocumentClient.from(ddb),
+    client: DynamoDBDocumentClient.from(ddb, {
+      marshallOptions: {
+        convertEmptyValues: true,
+      },
+    }),
     delete: deleteTableFunc,
   };
 };
