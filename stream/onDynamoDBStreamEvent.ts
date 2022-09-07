@@ -1,5 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { AttributeValue } from "@aws-sdk/client-dynamodb";
 import { EventBridgeClient, PutEventsCommand } from "@aws-sdk/client-eventbridge";
+import { unmarshall } from "@aws-sdk/util-dynamodb";
 import { DynamoDBStreamEvent, DynamoDBRecord } from "aws-lambda";
+import { BaseRecord } from "../src/db";
 
 export type OnDynamoDBStreamEvent = (event: DynamoDBStreamEvent) => Promise<void>;
 
@@ -26,12 +30,23 @@ export const createOnDynamoDBStreamHandler = (internalLog = defaultLog): OnDynam
       if (!hasRequiredKeys(r)) {
         continue;
       }
-      const typ = r.dynamodb?.NewImage?._typ.S;
-      const itm = r.dynamodb?.NewImage?._itm.S;
-      if (typ && itm) {
-        internalLog("publishing outbound event", { id: r.dynamodb?.NewImage?._id.S, typ });
-        await publish<string>(eventSource, typ, itm, eventBusName);
-        internalLog("published outbound event", { id: r.dynamodb?.NewImage?._id.S, typ, count: 1 });
+
+      // we use `any` here so that we don't have to specify a type, as this is a
+      // generic implementation - we are just going to publish the entire record
+      const record = unmarshall(
+        r.dynamodb?.NewImage as Record<string, AttributeValue>,
+      ) as unknown as BaseRecord & any;
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { _id, _rng, _facet, _typ, _ts, _date, _seq, ...itm } = record;
+      if (_typ && itm) {
+        internalLog("publishing outbound event", { id: _id, _typ });
+        await publish<string>(eventSource, _typ, itm, eventBusName);
+        internalLog("published outbound event", {
+          id: r.dynamodb?.NewImage?._id.S,
+          _typ,
+          count: 1,
+        });
       }
     }
     internalLog("processed records", { count: event.Records.length });
@@ -45,10 +60,7 @@ const hasStringKey = (r: DynamoDBRecord, k: string): boolean => !!r.dynamodb?.Ne
 const hasSortKeyThatStartsWithOutbound = (r: DynamoDBRecord): boolean =>
   (hasStringKey(r, "_rng") && r.dynamodb?.NewImage?._rng?.S?.startsWith("OUTBOUND")) || false;
 const hasRequiredKeys = (r: DynamoDBRecord): boolean =>
-  hasSortKeyThatStartsWithOutbound(r) &&
-  hasStringKey(r, "_facet") &&
-  hasStringKey(r, "_typ") &&
-  hasStringKey(r, "_itm");
+  hasSortKeyThatStartsWithOutbound(r) && hasStringKey(r, "_facet") && hasStringKey(r, "_typ");
 
 const publish = async <TEvent>(
   source: string,
