@@ -2,7 +2,7 @@
 
 A library for building event sourced database systems with DynamoDB.
 
-There are examples in the `examples` folder - this
+There are examples in the `examples` folder - to run the tests successfully you should run `npm run dynamodb` first, which will run DynamoDB locally in Docker.
 
 ## Original Documentation
 
@@ -10,8 +10,8 @@ Forked from original implementation here: https://github.com/a-h/hde. Many thank
 
 See blog posts:
 
-* https://adrianhesketh.com/2020/08/28/event-sourced-dynamodb-design-with-typescript-part-1/
-* https://adrianhesketh.com/2020/08/28/event-sourced-dynamodb-design-with-typescript-part-2/
+- https://adrianhesketh.com/2020/08/28/event-sourced-dynamodb-design-with-typescript-part-1/
+- https://adrianhesketh.com/2020/08/28/event-sourced-dynamodb-design-with-typescript-part-2/
 
 ## Using a package from the GitHub Package registry for NPM
 
