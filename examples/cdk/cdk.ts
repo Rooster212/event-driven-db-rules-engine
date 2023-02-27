@@ -1,10 +1,8 @@
 import { Stack, StackProps } from "aws-cdk-lib";
 import { AttributeType, BillingMode, StreamViewType, Table } from "aws-cdk-lib/aws-dynamodb";
 import { EventBus, Rule } from "aws-cdk-lib/aws-events";
-import { Runtime, StartingPosition } from "aws-cdk-lib/aws-lambda";
+import { StartingPosition } from "aws-cdk-lib/aws-lambda";
 import { DynamoEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
-import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
-import { RetentionDays } from "aws-cdk-lib/aws-logs";
 import { Construct } from "constructs";
 import { DynamoDBStreamEventHandler } from "../../stream/dynamoDBStreamEventHandler";
 
