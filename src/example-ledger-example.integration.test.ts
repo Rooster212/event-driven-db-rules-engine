@@ -62,7 +62,7 @@ describe("Ledger example e2e test", () => {
   it("Runs a ledger example", async () => {
     testDB = await TestCreateLocalTable();
     const db = new EventDB<BankAccount, InboundEvents, OutboundEvents>(
-      DynamoDBDocumentClient.from(testDB.client),
+      testDB.client,
       testDB.name,
       BankAccountRecordName,
     );

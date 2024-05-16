@@ -78,7 +78,7 @@ describe("Duplicate message handling example e2e test", () => {
 
   it("Runs a duplicate message handling example", async () => {
     const db = new EventDB<Order, InboundEvents, OutboundEvents>(
-      DynamoDBDocumentClient.from(testDB.client),
+      testDB.client,
       testDB.name,
       OrderRecordName,
     );
